@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>統合管理システム</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      background:#0b1220;
+      color:#e5e7eb;
+      height:100vh;
+      overflow:hidden;
+    }
+    .app{
+      height:100vh;
+      display:grid;
+      grid-template-columns:280px 1fr;
+    }
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr;}
+      .sidebar{display:none;} /* モバイルでは非表示（要改善）*/
+    }
+    .sidebar{
+      background:linear-gradient(180deg,#0b1220,#0a0f1a);
+      border-right:1px solid rgba(255,255,255,.08);
+      padding:16px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .brand{
+      padding:12px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+    }
+    .brand .title{
+      font-size:16px;font-weight:900;letter-spacing:.2px;
+      display:flex;align-items:center;gap:10px;
+    }
+    .brand .sub{
+      margin-top:6px;
+      color:rgba(229,231,235,.75);
+      font-size:12px;line-height:1.35;
+    }
+
+    .nav{display:flex;flex-direction:column;gap:8px;}
+    .nav button{
+      width:100%;
+      background:transparent;
+      border:1px solid rgba(255,255,255,.08);
+      color:#e5e7eb;
+      padding:12px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+      display:flex;align-items:center;justify-content:space-between;
+      transition:.15s;
+    }
+    .nav button:hover{
+      transform:translateY(-1px);
+      border-color:rgba(59,130,246,.55);
+      box-shadow:0 14px 30px rgba(59,130,246,.10);
+    }
+    .nav button.active{
+      border-color:rgba(59,130,246,.80);
+      background:rgba(59,130,246,.10);
+      box-shadow:0 14px 30px rgba(59,130,246,.14);
+    }
+    .nav .left{
+      display:flex;align-items:center;gap:10px;
+      text-align:left;
+    }
+    .pill{
+      font-size:11px;font-weight:900;
+      padding:4px 8px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      color:rgba(229,231,235,.85);
+    }
+
+    .sidebar-footer{
+      margin-top:auto;
+      border-top:1px solid rgba(255,255,255,.08);
+      padding-top:12px;
+      display:flex;flex-direction:column;gap:10px;
+    }
+    .small{
+      color:rgba(229,231,235,.65);
+      font-size:12px;line-height:1.4;
+    }
+    .btn-ghost{
+      width:100%;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      color:#e5e7eb;
+      font-weight:900;
+      cursor:pointer;
+      transition:.15s;
+    }
+    .btn-ghost:hover{border-color:rgba(255,255,255,.18);}
+
+    .main{
+      background:#0f172a;
+      padding:14px;
+      height:100vh;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .topbar{
+      height:54px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      background:rgba(255,255,255,.03);
+    }
+    .topbar .screen-title{
+      font-size:14px;font-weight:1000;
+      display:flex;align-items:center;gap:10px;
+    }
+    .topbar .url{
+      font-size:12px;
+      color:rgba(229,231,235,.65);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:55%;
+    }
+    @media (max-width:900px){
+      .topbar .url{display:none;}
+    }
+    .frame-wrap{
+      flex:1;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      overflow:hidden;
+      background:rgba(255,255,255,.02);
+      position:relative;
+    }
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:white;
+    }
+    .hint{
+      position:absolute;
+      inset:0;
+      display:none;
+      place-items:center;
+      padding:18px;
+      color:rgba(229,231,235,.8);
+      text-align:center;
+    }
+    .hint.show{display:grid;}
+    .hint .box{
+      max-width:720px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:18px;
+      padding:18px;
+      background:rgba(255,255,255,.03);
+      line-height:1.7;
+    }
+    .hint b{color:#fff;}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="title">🧩 統合管理システム</div>
+        <div class="sub">
+          左メニューで各システムを切替。<br/>
+          （各アプリは別リポジトリのままOK）
+        </div>
+      </div>
+
+      <nav class="nav" id="nav"></nav>
+
+      <div class="sidebar-footer">
+        <div class="small" id="statusText">準備中…</div>
+        <button class="btn-ghost" type="button" onclick="reloadFrame()">🔄 いま表示中のアプリを再読込</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="screen-title" id="screenTitle">—</div>
+        <div class="url" id="screenUrl">—</div>
+      </div>
+
+      <div class="frame-wrap">
+        <iframe id="appFrame" src=""></iframe>
+
+        <div class="hint" id="hint">
+          <div class="box">
+            <div style="font-weight:1000;font-size:16px;margin-bottom:10px;">⚠️ 表示できませんでした</div>
+            <div>
+              たぶん以下のどれかです：<br/>
+              • URLが間違っている<br/>
+              • GitHub Pagesが未公開/非公開リポジトリ<br/>
+              • アプリ側が <b>iframe 埋め込み拒否</b> している（X-Frame-Options など）<br/><br/>
+              対処：URL確認 → Pages公開 → それでもダメなら「統合はリンク遷移方式」に切替可能
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ============================
+    // ここだけ差し替えればOK
+    // ============================
+    const APPS = [
+      {
+        key: "performance",
+        label: "実績管理",
+        icon: "📊",
+        url: "https://YOUR-GITHUB-USERNAME.github.io/sales-system-index.html" // ←実績管理システム
+      },
+      {
+        key: "vehicles",
+        label: "車両管理",
+        icon: "🚚",
+        url: "https://YOUR-GITHUB-USERNAME.github.io/vehicle-app/" // ←車両管理システム
+      },
+      {
+        key: "customers",
+        label: "顧客管理",
+        icon: "👥",
+        url: "https://YOUR-GITHUB-USERNAME.github.io/customer-app/" // ←顧客管理システム
+      },
+      {
+        key: "inventory",
+        label: "在庫・通知",
+        icon: "📦",
+        url: "https://YOUR-GITHUB-USERNAME.github.io/inventory-notification-dark.html" // ←在庫・通知管理（ダークモード版）
+      },
+    ];
+
+    // ============================
+    // シェル機能
+    // ============================
+    const navEl = document.getElementById("nav");
+    const frame = document.getElementById("appFrame");
+    const hint = document.getElementById("hint");
+    const titleEl = document.getElementById("screenTitle");
+    const urlEl = document.getElementById("screenUrl");
+    const statusEl = document.getElementById("statusText");
+
+    let currentKey = null;
+
+    function buildNav(){
+      navEl.innerHTML = APPS.map(app => `
+        <button id="btn_${app.key}" type="button" onclick="openApp('${app.key}')">
+          <span class="left"><span style="font-size:18px;">${app.icon}</span> ${app.label}</span>
+          <span class="pill">切替</span>
+        </button>
+      `).join("");
+    }
+
+    function setActive(key){
+      APPS.forEach(a=>{
+        const btn = document.getElementById("btn_"+a.key);
+        if (!btn) return;
+        btn.classList.toggle("active", a.key === key);
+      });
+    }
+
+    function openApp(key){
+      const app = APPS.find(a=>a.key===key);
+      if (!app) return;
+
+      currentKey = key;
+      setActive(key);
+
+      titleEl.textContent = `${app.icon} ${app.label}`;
+      urlEl.textContent = app.url;
+
+      hint.classList.remove("show");
+      statusEl.textContent = "読み込み中…";
+
+      // iframe load監視
+      frame.onload = () => {
+        statusEl.textContent = "表示中：" + app.label;
+      };
+      frame.onerror = () => {
+        hint.classList.add("show");
+        statusEl.textContent = "表示失敗：" + app.label;
+      };
+
+      // 一部ブラウザでは onerror が出ない場合があるのでタイムアウト判定も
+      const token = Date.now();
+      frame.dataset.token = token;
+      setTimeout(() => {
+        if (frame.dataset.token != token) return; // 途中で切替済み
+        // 何も起きてなければ「失敗かも」表示（保険）
+        if (statusEl.textContent === "読み込み中…") {
+          hint.classList.add("show");
+          statusEl.textContent = "表示できない可能性があります：" + app.label;
+        }
+      }, 5000);
+
+      frame.src = app.url;
+      history.replaceState(null, "", "#"+app.key);
+    }
+
+    function reloadFrame(){
+      if (!frame.src) return;
+      frame.src = frame.src;
+    }
+
+    // 初期化
+    buildNav();
+    const initial = location.hash?.replace("#","") || APPS[0].key;
+    openApp(APPS.some(a=>a.key===initial) ? initial : APPS[0].key);
+  </script>
+</body>
+</html>
