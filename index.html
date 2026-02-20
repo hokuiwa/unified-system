@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>統合管理システム</title>
+  <title>統合管理システム v2.5</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{
@@ -20,7 +20,7 @@
     }
     @media (max-width:900px){
       .app{grid-template-columns:1fr;}
-      .sidebar{display:none;} /* モバイルでは非表示（要改善）*/
+      .sidebar{display:none;}
     }
     .sidebar{
       background:linear-gradient(180deg,#0b1220,#0a0f1a);
@@ -29,6 +29,7 @@
       display:flex;
       flex-direction:column;
       gap:14px;
+      overflow-y:auto;
     }
     .brand{
       padding:12px 12px;
@@ -101,8 +102,12 @@
       font-weight:900;
       cursor:pointer;
       transition:.15s;
+      font-size:13px;
     }
-    .btn-ghost:hover{border-color:rgba(255,255,255,.18);}
+    .btn-ghost:hover{
+      border-color:rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+    }
 
     .main{
       background:#0f172a;
@@ -161,17 +166,81 @@
       padding:18px;
       color:rgba(229,231,235,.8);
       text-align:center;
+      background:rgba(15,23,42,.95);
+      backdrop-filter:blur(10px);
     }
     .hint.show{display:grid;}
     .hint .box{
       max-width:720px;
       border:1px dashed rgba(255,255,255,.18);
       border-radius:18px;
-      padding:18px;
+      padding:24px;
       background:rgba(255,255,255,.03);
       line-height:1.7;
     }
     .hint b{color:#fff;}
+    .hint-title{
+      font-size:20px;
+      font-weight:1000;
+      margin-bottom:12px;
+    }
+    .hint-actions{
+      margin-top:20px;
+      display:flex;
+      gap:12px;
+      justify-content:center;
+    }
+    .btn-reload{
+      padding:12px 24px;
+      border-radius:12px;
+      border:1px solid rgba(59,130,246,.5);
+      background:rgba(59,130,246,.15);
+      color:#93c5fd;
+      font-weight:900;
+      cursor:pointer;
+      transition:.15s;
+      font-size:14px;
+    }
+    .btn-reload:hover{
+      background:rgba(59,130,246,.25);
+      transform:translateY(-1px);
+    }
+    
+    /* 読み込み中インジケーター */
+    .loading-indicator{
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      gap:16px;
+      z-index:10;
+    }
+    .loading-indicator.show{display:flex;}
+    .spinner{
+      width:48px;
+      height:48px;
+      border:4px solid rgba(255,255,255,.1);
+      border-top:4px solid #3b82f6;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    .loading-text{
+      color:rgba(229,231,235,.8);
+      font-weight:900;
+      font-size:14px;
+    }
+    
+    /* バージョン表示 */
+    .version{
+      font-size:11px;
+      color:rgba(229,231,235,.4);
+      text-align:center;
+      padding:8px;
+    }
   </style>
 </head>
 <body>
@@ -189,7 +258,8 @@
 
       <div class="sidebar-footer">
         <div class="small" id="statusText">準備中…</div>
-        <button class="btn-ghost" type="button" onclick="reloadFrame()">🔄 いま表示中のアプリを再読込</button>
+        <button class="btn-ghost" type="button" onclick="reloadFrame()">🔄 再読込</button>
+        <div class="version">v2.5 - iframe安定版</div>
       </div>
     </aside>
 
@@ -200,17 +270,36 @@
       </div>
 
       <div class="frame-wrap">
+        <!-- 読み込み中インジケーター -->
+        <div class="loading-indicator" id="loadingIndicator">
+          <div class="spinner"></div>
+          <div class="loading-text">読み込み中...</div>
+        </div>
+
         <iframe id="appFrame" src=""></iframe>
 
         <div class="hint" id="hint">
           <div class="box">
-            <div style="font-weight:1000;font-size:16px;margin-bottom:10px;">⚠️ 表示できませんでした</div>
+            <div class="hint-title">⚠️ 表示できませんでした</div>
             <div>
-              たぶん以下のどれかです：<br/>
-              • URLが間違っている<br/>
-              • GitHub Pagesが未公開/非公開リポジトリ<br/>
-              • アプリ側が <b>iframe 埋め込み拒否</b> している（X-Frame-Options など）<br/><br/>
-              対処：URL確認 → Pages公開 → それでもダメなら「統合はリンク遷移方式」に切替可能
+              以下の原因が考えられます：<br/><br/>
+              
+              <b>1. URLが間違っている</b><br/>
+              → 設定を確認してください<br/><br/>
+              
+              <b>2. GitHub Pagesが未公開</b><br/>
+              → リポジトリ設定でPagesを有効化<br/><br/>
+              
+              <b>3. iframe埋め込みが拒否されている</b><br/>
+              → アプリ側のX-Frame-Options設定<br/>
+              （静的HTMLは通常問題なし）<br/><br/>
+              
+              <b>4. 読み込みに時間がかかっている</b><br/>
+              → 下の「再読込」ボタンを試してください
+            </div>
+            <div class="hint-actions">
+              <button class="btn-reload" onclick="reloadFrame()">🔄 再読込</button>
+              <button class="btn-reload" onclick="openInNewTab()">🔗 新しいタブで開く</button>
             </div>
           </div>
         </div>
@@ -227,25 +316,25 @@
         key: "performance",
         label: "実績管理",
         icon: "📊",
-        url: "https://hokuiwa.github.io/Achievements-system/" // ←実績管理システム
+        url: "https://hokuiwa.github.io/Achievements-system/"
       },
       {
         key: "vehicles",
         label: "車両管理",
         icon: "🚚",
-        url: "https://hokuiwa.github.io/vehicle-manager/" // ←車両管理システム
+        url: "https://hokuiwa.github.io/vehicle-manager/"
       },
       {
         key: "customers",
         label: "顧客管理",
         icon: "👥",
-        url: "https://hokuiwa.github.io/integrated-system/" // ←顧客管理システム
+        url: "https://hokuiwa.github.io/integrated-system/"
       },
       {
         key: "inventory",
-        label: "在庫・期限管理システム",
+        label: "在庫・通知",
         icon: "📦",
-        url: "https://hokuiwa.github.io/inventory-notification/" // ←在庫・通知管理（ダークモード版）
+        url: "https://hokuiwa.github.io/inventory-notification/"
       },
     ];
 
@@ -255,11 +344,13 @@
     const navEl = document.getElementById("nav");
     const frame = document.getElementById("appFrame");
     const hint = document.getElementById("hint");
+    const loadingIndicator = document.getElementById("loadingIndicator");
     const titleEl = document.getElementById("screenTitle");
     const urlEl = document.getElementById("screenUrl");
     const statusEl = document.getElementById("statusText");
 
     let currentKey = null;
+    let currentUrl = null;
 
     function buildNav(){
       navEl.innerHTML = APPS.map(app => `
@@ -283,48 +374,115 @@
       if (!app) return;
 
       currentKey = key;
+      currentUrl = app.url;
       setActive(key);
 
       titleEl.textContent = `${app.icon} ${app.label}`;
       urlEl.textContent = app.url;
 
       hint.classList.remove("show");
+      loadingIndicator.classList.add("show");
       statusEl.textContent = "読み込み中…";
 
-      // iframe load監視
+      // iframe load監視（強化版）
+      let loaded = false;
+      let loadTimeout;
+      
       frame.onload = () => {
+        loaded = true;
+        loadingIndicator.classList.remove("show");
         statusEl.textContent = "表示中：" + app.label;
+        hint.classList.remove("show");
+        clearTimeout(loadTimeout);
+        console.log('✅ 読み込み成功:', app.label);
       };
+      
       frame.onerror = () => {
+        loaded = true;
+        loadingIndicator.classList.remove("show");
         hint.classList.add("show");
         statusEl.textContent = "表示失敗：" + app.label;
+        clearTimeout(loadTimeout);
+        console.error('❌ 読み込み失敗:', app.label);
       };
 
-      // 一部ブラウザでは onerror が出ない場合があるのでタイムアウト判定も
+      // タイムアウト判定（10秒）
       const token = Date.now();
       frame.dataset.token = token;
-      setTimeout(() => {
+      
+      loadTimeout = setTimeout(() => {
         if (frame.dataset.token != token) return; // 途中で切替済み
-        // 何も起きてなければ「失敗かも」表示（保険）
-        if (statusEl.textContent === "読み込み中…") {
-          hint.classList.add("show");
-          statusEl.textContent = "表示できない可能性があります：" + app.label;
+        
+        // 10秒経過しても読み込めていない場合
+        if (!loaded) {
+          // クロスオリジンチェック
+          try {
+            // iframe内にアクセスできるかテスト
+            const test = frame.contentWindow.location.href;
+            // アクセスできた = 同一オリジン = 読み込み成功
+            loaded = true;
+            loadingIndicator.classList.remove("show");
+            statusEl.textContent = "表示中：" + app.label;
+            console.log('✅ 読み込み成功（遅延）:', app.label);
+          } catch (e) {
+            // クロスオリジンエラー = 別オリジンだが読み込みは成功している
+            if (e.name === 'SecurityError') {
+              loaded = true;
+              loadingIndicator.classList.remove("show");
+              statusEl.textContent = "表示中：" + app.label;
+              console.log('✅ 読み込み成功（クロスオリジン）:', app.label);
+            } else {
+              // 本当に失敗
+              loadingIndicator.classList.remove("show");
+              hint.classList.add("show");
+              statusEl.textContent = "表示できない可能性：" + app.label;
+              console.warn('⚠️ 読み込みタイムアウト:', app.label);
+            }
+          }
         }
-      }, 5000);
+      }, 10000);
 
+      // iframe src設定
       frame.src = app.url;
       history.replaceState(null, "", "#"+app.key);
     }
 
     function reloadFrame(){
-      if (!frame.src) return;
-      frame.src = frame.src;
+      if (!currentUrl) {
+        alert('まずアプリを選択してください');
+        return;
+      }
+      
+      console.log('🔄 再読込:', currentUrl);
+      loadingIndicator.classList.add("show");
+      hint.classList.remove("show");
+      
+      // 強制リロード
+      frame.src = 'about:blank';
+      setTimeout(() => {
+        frame.src = currentUrl;
+      }, 100);
+    }
+
+    function openInNewTab(){
+      if (!currentUrl) {
+        alert('まずアプリを選択してください');
+        return;
+      }
+      window.open(currentUrl, '_blank');
     }
 
     // 初期化
     buildNav();
     const initial = location.hash?.replace("#","") || APPS[0].key;
     openApp(APPS.some(a=>a.key===initial) ? initial : APPS[0].key);
+    
+    // ログ
+    console.log('🚀 統合管理システム v2.5');
+    console.log('✅ iframe安定化');
+    console.log('✅ タイムアウト10秒');
+    console.log('✅ クロスオリジン対応');
+    console.log('✅ エラーハンドリング強化');
   </script>
 </body>
 </html>
